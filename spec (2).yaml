@@ -1,0 +1,1182 @@
+openapi: 3.0.3
+info:
+  title: Billing API
+  description: |
+    Integrate your billing engine or ERP system with Everon’s Billing API.
+    This API gives you access to plan, products and subscriptions data, so that you know what to collect from or pay out to customers.
+    You can also retrieve accounts data to ensure your invoices always have accurate information.
+
+
+    Please be aware, from the version 1.5.0 of Billing OpenAPI spec endpoints starting with '/transactions' are available at https://developers.everon.io/docs/transactions-product/1/overview
+
+    We are deprecating the API path '/billing/v1/transactions' in preference to '/transactions/v1/transactions'. All other API properties are backward compatible and safe to migrate.
+
+    The old '/billing/v1/transactions' path will be available and work the same way as the new one does till the end of the migration process.
+  termsOfService: 'https://www.evbox.com/general-terms-conditions'
+  version: 1.5.0
+  contact:
+    name: Everon API Team
+    email: support@everon.io
+  license:
+    name: Generic Everon license
+    url: 'https://everon.io/licenses/EveronApiLicense.html'
+servers:
+  - url: 'https://api.everon.io/billing/v1'
+security:
+  - everonOAuth2:
+      - api_billing
+  - publicApiKey: []
+paths:
+  /:
+    get:
+      operationId: getOpenApiSpecification
+      summary: Retrieves the Billing API specification in YAML format
+      parameters:
+        - name: openapi
+          in: query
+          required: true
+          example: 'https://api.everon.io/billing/v1/?openApi'
+          schema:
+            type: string
+            maxLength: 0
+      responses:
+        '200':
+          description: Request processed successfully
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+  /accounts:
+    get:
+      operationId: getBillingInformation
+      summary: Returns billing information for all accounts
+      description: 'Returns billing information according to parameters set, such as accountIds, dateFilterOption or startDate. Billing information returned includes details such as billing contact, address, reimbursement information, creation date, and so on.'
+      parameters:
+        - name: accountIds
+          in: query
+          required: false
+          description: Filters results for specific accounts based on their unique identifiers.
+          schema:
+            type: array
+            items:
+              type: string
+        - name: dateFilterOption
+          in: query
+          required: false
+          description: Filters results based on the date when the account was created or last updated. The default value is updatedAt.
+          schema:
+            enum:
+              - createdAt
+              - updatedAt
+        - name: startDate
+          in: query
+          required: false
+          description: 'Filters results with the dateFilterOption on or after this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: 'Filters results with the dateFilterOption on or before this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: cycleDay
+          in: query
+          required: false
+          description: Filters results based on the date when the first subscription was activated.
+          schema:
+            type: integer
+            maximum: 31
+            minimum: 1
+            format: int32
+        - name: includeHistoricalData
+          in: query
+          required: false
+          description: Indicates if historical data should be included in the results.
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          required: false
+          description: Limits the number of accounts returned in one batch (for pagination).
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: location
+          in: query
+          required: false
+          description: Provides a link to the next batch of accounts returned (next page of results). The link is provided in the response header of the previous request.
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Billing information returned successfully
+          headers:
+            Link:
+              schema:
+                type: string
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Accounts'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '417':
+          $ref: '#/components/responses/417'
+  '/accounts/{accountId}':
+    get:
+      operationId: getAccountBillingInformation
+      summary: Returns billing information for a specific account
+      description: 'This method was deprecated. Use /accounts instead, specifying the account’s unique identifier in accountIds.'
+      deprecated: true
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: UUID of the account.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Billing information returned successfully
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '417':
+          $ref: '#/components/responses/417'
+  /invoices:
+    get:
+      operationId: getAllInvoices
+      summary: Returns all invoices
+      description: 'Returns all invoices according to parameters set, such as accountId, startDate, and limit. Invoice information includes details such as invoice date, account ID, VAT, and so on.'
+      parameters:
+        - name: accountId
+          in: query
+          required: false
+          description: Returns invoices for a specific account based on its UUID.
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: false
+          description: 'Filters results to return invoices created on or after this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: 'Filters results to return invoices created on or before this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          description: Limits the number of invoices returned in one batch (for pagination).
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: location
+          in: query
+          required: false
+          description: Provides a link to the next batch of invoices returned (next page of results). The link is provided in the response header of the previous request.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoices returned successfully
+          headers:
+            Link:
+              schema:
+                type: string
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Invoices'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '417':
+          $ref: '#/components/responses/417'
+  '/accounts/{accountId}/invoices':
+    get:
+      operationId: getAllAccountInvoices
+      summary: Returns all invoices for a specific account
+      description: 'Returns all invoices for a specific account based on its UUID and according to parameters set, such as startDate, endDate, and limit. Invoice information includes the invoice date and number, billing contact, VAT, and so on.'
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: UUID of the account.
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: false
+          description: Filters results to return invoices created on or after this date.
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: 'Filters results to return invoices created on or before this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          description: Limits the number of invoices returned in one batch (for pagination).
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: location
+          in: query
+          required: false
+          description: Provides a link to the next batch of invoices returned (next page of results). The link is provided in the response header of the previous request.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice details returned successfully
+          headers:
+            Link:
+              schema:
+                type: string
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Invoices'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '417':
+          $ref: '#/components/responses/417'
+  '/accounts/{accountId}/invoices/{invoiceId}':
+    get:
+      operationId: getInvoiceInformation
+      summary: Returns details for a specific invoice
+      description: Returns details for a specific invoice belonging to a specific account based on the account’s UUID and invoice UUID.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          description: UUID of the account.
+          schema:
+            type: string
+        - name: invoiceId
+          in: path
+          required: true
+          description: UUID of the invoice.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice details returned successfully.
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '417':
+          $ref: '#/components/responses/417'
+  /products:
+    get:
+      operationId: getAllProducts
+      summary: Returns information for billing plan products.
+      description: 'Returns information for the products on which asset billing plans (subscriptions) are based according to the parameters set. Product details include product ID, country availability, whether public charging is enabled, and so on.'
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filters results on station or card products.
+          schema:
+            enum:
+              - CARD
+              - STATION
+        - name: limit
+          in: query
+          required: false
+          description: Limits the number of products returned in one batch (for pagination).
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: location
+          in: query
+          required: false
+          description: Provides a link to the next batch of products returned (next page of results). The link is provided in the response header of the previous request.
+          schema:
+            type: integer
+            minimum: 0
+        - name: dateFilterOption
+          in: query
+          required: false
+          description: 'Filters results based on the date the product was created or last updated. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            enum:
+              - createdAt
+              - updatedAt
+        - name: startDate
+          in: query
+          required: false
+          description: 'Filters results to return products with the dateFilterOption on or after this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: 'Filters results to return products with the dateFilterOption on or before this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Products returned successfully.
+          headers:
+            Link:
+              schema:
+                type: string
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Products'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '417':
+          $ref: '#/components/responses/417'
+  '/products/{productId}':
+    get:
+      operationId: getProductInformation
+      summary: Returns a specific product.
+      description: Returns information about a specific product based on the product’s UUID.
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: UUID of the product
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product details returned successfully
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '417':
+          $ref: '#/components/responses/417'
+  /plans:
+    get:
+      operationId: getAllPlans
+      summary: Returns information for plans.
+      description: 'Returns information for plans associated with asset billing plans (subscriptions) according to the parameters set. Plan details include plan ID, pricing, public transaction fees, and so on.'
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filters results on card or station plans.
+          schema:
+            enum:
+              - CARD
+              - STATION
+        - name: productId
+          in: query
+          required: false
+          description: Filters results to return plans that are based on a specific product using the product UUID.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Limits the number of plans returned in one batch (for pagination).
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: location
+          in: query
+          required: false
+          description: Provides a link to the next batch of plans returned (next page of results). The link is provided in the response header of the previous request.
+          schema:
+            type: integer
+            minimum: 0
+        - name: dateFilterOption
+          in: query
+          required: false
+          description: 'Filters results based on the date the plan was created or last updated. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            enum:
+              - createdAt
+              - updatedAt
+        - name: startDate
+          in: query
+          required: false
+          description: 'Filters results to return plans with the dateFilterOption on or after this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: 'Filters results to return plans with the dateFilterOption on or before this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Plans returned successfully
+          headers:
+            Link:
+              schema:
+                type: string
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Plans'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '417':
+          $ref: '#/components/responses/417'
+  '/plans/{planId}':
+    get:
+      operationId: getPlanInformation
+      summary: Returns a specific plan
+      description: Returns information about a specific plan based on the plan’s UUID.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          description: UUID of the plan
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plan details returned successfully
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '417':
+          $ref: '#/components/responses/417'
+  /subscriptions:
+    get:
+      operationId: getAllSubscriptions
+      summary: Returns subscription information.
+      description: 'Returns information about subscriptions according to the parameters set. Subscription details include type (card or station), pricing, account ID, and so on.'
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filters results to only return card or station subscriptions.
+          schema:
+            enum:
+              - CARD
+              - STATION
+        - name: accountId
+          in: query
+          required: false
+          description: Filters results to only return subscriptions belonging to the specific account using the account UUID.
+          schema:
+            type: string
+        - name: subscriberId
+          in: query
+          required: false
+          description: 'Filters results to only return subscriptions attached to a specific card or station, using the card or station UUID.'
+          schema:
+            type: string
+        - name: planId
+          in: query
+          required: false
+          description: Filters results to only return subscriptions based on a specific plan.
+          schema:
+            type: string
+        - name: productId
+          in: query
+          required: false
+          description: Filters results to only return subscriptions based on a specific product.
+          schema:
+            type: string
+        - name: dateFilterOption
+          in: query
+          required: false
+          description: 'Filters results to return subscriptions that started on, were last updated on, or ended on a specific date.'
+          schema:
+            enum:
+              - startedAt
+              - updatedAt
+              - endedAt
+        - name: startDate
+          in: query
+          required: false
+          description: 'Filters results to return plans with the dateFilterOption on or after this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: false
+          description: 'Filters results to return plans with the dateFilterOption on or before this date. The date must be in ISO 8601 format yyyy-mm-ddThh:mm:ss, whereby the time is UTC.'
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          description: Limits the number of subscriptions returned in one batch (for pagination).
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: location
+          in: query
+          required: false
+          description: Provides a link to the next batch of subscriptions returned (next page of results). The link is provided in the response header of the previous request.
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: Subscriptions returned successfully
+          headers:
+            Link:
+              schema:
+                type: string
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Subscriptions'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '417':
+          $ref: '#/components/responses/417'
+  '/subscriptions/{subscriptionId}':
+    get:
+      operationId: getSubscriptionInformation
+      summary: Returns information for a specific subscription
+      description: Returns information for a specific subscription based on the subscription’s UUID.
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          description: UUID of the subscription
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscription details returned successfully
+          content:
+            application/json; charset=UTF-8:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '417':
+          $ref: '#/components/responses/417'
+components:
+  schemas:
+    Account:
+      type: object
+      description: Response parameters for account billing information.
+      properties:
+        id:
+          type: string
+          description: Account UUID.
+          format: uuid
+        number:
+          type: string
+          description: Number assigned to the account.
+          maxLength: 36
+        type:
+          description: Account type.
+          enum:
+            - BUSINESS
+            - CONSUMER
+        businessDetails:
+          type: object
+          description: Company details. Only applicable to business accounts.
+          properties:
+            vatNumber:
+              type: string
+              maxLength: 36
+            companyName:
+              type: string
+              maxLength: 255
+        contact:
+          type: object
+          description: Details about the account’s billing contact person.
+          properties:
+            email:
+              type: string
+              format: email
+              maxLength: 255
+            name:
+              type: string
+              maxLength: 255
+            phoneNumber:
+              type: string
+              maxLength: 20
+        address:
+          $ref: '#/components/schemas/Address'
+        reimbursementDetails:
+          type: object
+          description: Reimbursement information used to reimburse employees or pay out tariffs to station owners.
+          nullable: true
+          properties:
+            name:
+              type: string
+              description: Name on recipient’s bank account.
+              maxLength: 255
+            iban:
+              type: string
+              description: IBAN of recipient’s bank account.
+              maxLength: 31
+            bic:
+              type: string
+              description: SWIFT/BIC code of recipient’s bank account.
+              maxLength: 12
+            rate:
+              type: string
+              description: Reimbursement rate per kWh for private charging sessions.
+              format: decimal
+        language:
+          type: string
+          description: ISO 3166 two-letter country code representing the invoice language.
+          minLength: 2
+          maxLength: 2
+        createdAt:
+          type: string
+          description: Date on which the account was created.
+          format: date-time
+        updatedAt:
+          type: string
+          description: Date on which account information was last updated.
+          format: date-time
+        cycleDay:
+          type: integer
+          description: Date on which the first subscription was activated and therefore the first billing cycle started. This is the billing cycle date for all asset subscriptions in the account.
+          maximum: 31
+          minimum: 1
+          format: int32
+        invoices:
+          description: Link to a list of invoices belonging to the account.
+          type: string
+        parent:
+          description: Link to parent account details. Only applicable if the returned account details are for a sub-account.
+          type: string
+    Accounts:
+      type: array
+      items:
+        $ref: '#/components/schemas/Account'
+    Invoice:
+      type: object
+      description: Response parameters for invoice information.
+      properties:
+        id:
+          type: string
+          description: Invoice ID
+        invoiceDate:
+          type: string
+          description: Date on which the invoice was generated.
+        number:
+          type: string
+          description: Number assigned to the invoice.
+        account:
+          $ref: '#/components/schemas/InvoiceAccount'
+        netAmount:
+          type: string
+          description: Total net amount of the subscription.
+          format: decimal
+        vatAmount:
+          type: string
+          description: 'VAT applicable to the subscription. The format is in decimals, for example, 21% is returned as 0.21.'
+          format: decimal
+        reverseCharge:
+          type: boolean
+          description: Defines whether or not a reverse charge is applicable.
+        total:
+          type: string
+          description: Total subscription price including VAT.
+          format: decimal
+        currency:
+          type: string
+          description: Three-letter currency code according to ISO 4217.
+          minLength: 3
+          maxLength: 3
+        type:
+          description: 'Defines whether the invoice is for a subscription (billing plan), or card or station transactions.'
+          enum:
+            - BILLING_PLANS
+            - CARD_TRANSACTIONS
+            - STATION_TRANSACTIONS
+        subtotalLines:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceSubtotalLine'
+        createdAt:
+          type: string
+          format: date-time
+    InvoiceAccount:
+      type: object
+      description: Response parameters containing details for billing accounts.
+      properties:
+        id:
+          type: string
+          description: Account UUID
+          format: uuid
+        number:
+          type: string
+          description: Number assigned to the account.
+          maxLength: 36
+        type:
+          description: Account type.
+          enum:
+            - BUSINESS
+            - CONSUMER
+        businessDetails:
+          type: object
+          description: Company details. Only applicable to business accounts.
+          properties:
+            vatNumber:
+              type: string
+              maxLength: 36
+            companyName:
+              maxLength: 255
+        contact:
+          type: object
+          description: Details about the account’s billing contact person.
+          properties:
+            email:
+              type: string
+              format: email
+              maxLength: 255
+            name:
+              type: string
+              maxLength: 255
+            phoneNumber:
+              type: string
+              maxLength: 20
+        address:
+          $ref: '#/components/schemas/Address'
+    InvoiceSubtotalLine:
+      type: object
+      description: Response parameters providing the price breakdown of the invoice.
+      properties:
+        vat:
+          type: object
+          description: VAT deatails.
+          properties:
+            country:
+              type: string
+              description: Two-letter country code according to ISO 3166 taken from the legal entity on which the subscription is based.
+              minLength: 2
+              maxLength: 2
+            percentage:
+              description: Applicable VAT percentage in the country of the subscription in decimals.
+              type: string
+              format: decimal
+        netAmount:
+          type: string
+          description: The total net amount of the invoice.
+          format: decimal
+        vatAmount:
+          type: string
+          description: The total amount of VAT added to the invoice based on the applicable VAT percentage and the netAmount.
+          format: decimal
+        total:
+          type: string
+          description: Total amount of the subscription; netAmount plus vatAmount.
+          format: decimal
+        type:
+          description: Type of invoice.
+          enum:
+            - CARD_BILLING_PLAN
+            - CARD_BILLING_PLAN_REIMBURSEMENT
+            - STATION_BILLING_PLAN
+            - CARD_TRANSACTION
+            - STATION_TRANSACTION
+            - TRANSACTION_FEE
+    Invoices:
+      type: array
+      items:
+        $ref: '#/components/schemas/Invoice'
+    Product:
+      type: object
+      description: Response parameters containing information about a product on which a subscription (billing plan) is based.
+      properties:
+        id:
+          type: string
+          description: Product UUID.
+          format: uuid
+        type:
+          description: Indicates whether the product is for a card or a station subscription.
+          enum:
+            - CARD
+            - STATION
+        name:
+          type: string
+          description: Name given to the product for administrative purposes; this name is not exposed to customers.
+        publicName:
+          type: string
+          description: Name given to the product. This name is visible to customers when selecting a product and referring to their subscription (billing plan).
+        publicChargingEnabled:
+          type: boolean
+          description: Defines whether the subscriptions based on this product will allow public charging.
+        publicChargingTariffs:
+          type: object
+          description: Only applicable to station products. Defines which transaction tariff(s) and their maximum amount(s) that station owners are allowed to set when making their station public.
+          properties:
+            connectionTariffEnabled:
+              type: boolean
+              description: Defines whether station owners can set a connection tariff (fixed rate per charging session).
+            energyTariffEnabled:
+              type: boolean
+              description: Defines whether station owners can set an energy tariff (amount per kWh consumed during the charging session).
+            timeTariffEnabled:
+              type: boolean
+              description: Defines whether station owners can set a time tariff (amount per minute spent at the charging station).
+            maxNetConnectionTariff:
+              type: string
+              description: Maximum amount that station owners may set as a connection tariff. This is an optional field and defined by the Charging Service Provider (tenant).
+              format: decimal
+            maxNetEnergyTariff:
+              type: string
+              description: Maximum amount that station owners may set as an energy tariff. This is an optional field and defined by the Charging Service Provider (tenant).
+              format: decimal
+            maxNetTimeTariff:
+              type: string
+              description: Maximum amount that station owners may set as a time tariff. This is an optional field and defined by the Charging Service Provider (tenant).
+              format: decimal
+        country:
+          type: string
+          description: Two-letter country code according to ISO 3166 defining the country in which the product is available.
+          minLength: 2
+          maxLength: 2
+        termsUrl:
+          type: string
+          description: A URL linking to terms and conditions that apply to any subscription based on the product.
+        plans:
+          type: string
+          description: A link to all plans based on the product.
+        subscriptions:
+          type: string
+          description: A link to all subscriptions based on the plan.
+        createdAt:
+          type: string
+          description: Timestamp in UTC when the product was created.
+          format: date-time
+        updatedAt:
+          type: string
+          description: Timestamp in UTC when the product was last modified.
+          format: date-time
+    Products:
+      type: array
+      items:
+        $ref: '#/components/schemas/Product'
+    Plan:
+      type: object
+      description: Response parameters containing information about the plan of the subscription.
+      properties:
+        id:
+          type: string
+          description: Plan UUID.
+          format: uuid
+        type:
+          description: Defines whether the plan is for a card or station subscription.
+          enum:
+            - CARD
+            - STATION
+        name:
+          type: string
+          description: Name given to the plan. This name is visible to customers when selecting a plan and referring to their subscription (billing plan).
+        netPrice:
+          type: string
+          description: Total monthly net price for the subscription.
+          format: decimal
+        paymentPeriod:
+          type: integer
+          format: int32
+          minimum: 1
+        publicTransactionFee:
+          type: object
+          description: |
+            Transaction fees applicable to public charging sessions as set by the Charging Service Provider to earn revenue for providing the service.
+            Transaction fees are added to card transaction amounts and deducted from station transaction amounts - users of a public
+            station are expected to pay the full transaction price plus the transaction fee(s). Station owners are paid out the transaction tariffs minus the transaction fee(s).
+          properties:
+            percentage:
+              type: string
+              description: A percentage of the total transaction price built up from transaction tariffs.
+              format: decimal
+            fixed:
+              type: string
+              description: A fixed fee per transaction.
+              format: decimal
+        availableFrom:
+          type: string
+          description: Date from when the plan can be selected.
+        availableUntil:
+          type: string
+          description: Optional date up to when the plan can be selected.
+        accountTypes:
+          type: array
+          description: 'Defines which account types are allowed to select the plan. Can be business, consumer (PRIVATE), or both.'
+          items:
+            enum:
+              - BUSINESS
+              - PRIVATE
+        connectivityTypes:
+          type: array
+          description: |
+            Only applicable to station plans. Defines which connectivity type the station must have to select the plan. Connectivity types can be WiFi, GSM, or both.
+            Ethernet stations can use WiFi plans.
+          items:
+            enum:
+              - WIFI
+              - GSM
+        powerTypes:
+          type: array
+          description: 'Only applicable to station plans. Defines which power type the station must have to select the plan. Can be AC, DC, or both.'
+          items:
+            enum:
+              - AC
+              - DC
+        product:
+          type: string
+          description: Link to the product on which the plan is based.
+        subscriptions:
+          type: string
+          description: A link to all subscriptions based on the plan.
+        createdAt:
+          type: string
+          description: Timestamp in UTC when the plan was created.
+          format: date-time
+        updatedAt:
+          type: string
+          description: Timestamp in UTC when the plan was last modified.
+          format: date-time
+    Plans:
+      type: array
+      items:
+        $ref: '#/components/schemas/Plan'
+    Subscription:
+      type: object
+      description: Response parameters for active subscriptions.
+      properties:
+        id:
+          type: string
+          description: Subscription UUID.
+          format: uuid
+        type:
+          description: 'Subscription type: card or station.'
+          enum:
+            - CARD
+            - STATION
+        subscriberId:
+          type: string
+          description: UUID of the card or station using the subscription.
+          format: uuid
+        subscriberCode:
+          type: string
+          description: 'Contract ID or Station ID of the card or station using the subscription, as defined by the Charging Service Provider.'
+        accountId:
+          type: string
+          description: UUID of the account associated with the subscription.
+          format: uuid
+        startedAt:
+          type: string
+          description: Timestamp in UTC when the subscription was activated.
+          format: date-time
+        updatedAt:
+          type: string
+          description: Timestamp in UTC when the subscription was last modified.
+          format: date-time
+        endedAt:
+          type: string
+          description: Timestamp in UTC when the subscription ended.
+          format: date-time
+        invoicedUntil:
+          type: string
+          description: End-date of the previous invoicing period.
+        netConnectionTariff:
+          description: Net connection tariff (fixed rate) applicable to public charging.
+          type: string
+          format: decimal
+        netEnergyTariff:
+          type: string
+          description: Net energy tariff per kWh applicable to public charging.
+          format: decimal
+        netTimeTariff:
+          type: string
+          description: Net time tariff per minute applicable to public charging.
+          format: decimal
+        purchaseOrderNumber:
+          type: string
+          description: Optional purchase order number assigned to the subscription.
+        product:
+          type: string
+          description: Optional purchase order number assigned to the subscription.
+        plan:
+          type: string
+          description: Link to the plan on which the subscription is based.
+    Subscriptions:
+      type: array
+      items:
+        $ref: '#/components/schemas/Subscription'
+    Address:
+      type: object
+      description: Response parameters containing the account’s billing address.
+      properties:
+        house:
+          type: string
+          maxLength: 255
+        streetName:
+          type: string
+          maxLength: 255
+        postalCode:
+          type: string
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 2
+        country:
+          type: string
+          maxLength: 255
+    OpenApiUrlConfig:
+      type: object
+      properties:
+        baseUrlPattern:
+          type: string
+          default: '(?<baseURL>.*\\/api\\/.*\\/v[0-9*]).*'
+        parentAccountUrlFormat:
+          type: string
+          default: <baseURL>/accounts/<parentAccountId>
+        invoicesByAccountUrlFormat:
+          type: string
+          default: <baseURL>/accounts/<accountId>/invoices
+        plansByProductUrlFormat:
+          type: string
+          default: <baseURL>/plans?productId=<productId>
+        subscriptionsByProductUrlFormat:
+          type: string
+          default: <baseURL>/subscriptions?productId=<productId>
+        productUrlFormat:
+          type: string
+          default: <baseURL>/products/<productId>
+        subscriptionsByPlanUrlFormat:
+          type: string
+          default: <baseURL>/subscriptions?planId=<planId>
+        planUrlFormat:
+          type: string
+          default: <baseURL>/plans/<planId>
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+  securitySchemes:
+    publicApiKey:
+      type: apiKey
+      description: |
+        Public API key in UUID format. It is used as a value by the Authorization header when authenticating access requests to the Billing API's endpoints.
+        Contact the Everon support team if you require a public API key.
+
+        We've deprecated public API key as an authentication option. We recommend using everonOAuth2 instead.
+      name: Authorization
+      in: header
+    everonOAuth2:
+      type: oauth2
+      description: |
+        Everon OAuth 2.0 authentication that uses a JWT bearer token to authenticate access.
+        Contact the Everon support team if you require the JWT Bearer token.
+      flows:
+        clientCredentials:
+          tokenUrl: 'https://everon-parent.okta.com/oauth2/default/v1/token'
+          scopes:
+            api_billing: Access to the Billing API’s endpoints
+  responses:
+    '401':
+      description: |
+        Authentication credentials are missing or invalid.
+        Please verify your authentication credentials, or contact Everon support for the correct details.
+      content:
+        application/json; charset=UTF-8:
+          schema:
+            $ref: '#/components/schemas/Error'
+    '403':
+      description: |
+        The authorization information of the request doesn’t have permission to access this resource.
+        Please verify your authorization headers, or contact Everon support for the correct details.
+      content:
+        application/json; charset=UTF-8:
+          schema:
+            $ref: '#/components/schemas/Error'
+    '404':
+      description: The requested resource couldn’t be found.
+      content:
+        application/json; charset=UTF-8:
+          schema:
+            $ref: '#/components/schemas/Error'
+    '417':
+      description: 'Expectation failed. The request parameter mentioned in the body, URL, or headers is incorrect. Please verify the request parameters you provided.'
+      content:
+        application/json; charset=UTF-8:
+          schema:
+            $ref: '#/components/schemas/Error'
