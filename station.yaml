@@ -1,7 +1,7 @@
 openapi: 3.0.2
 
 info:
-  description: Remotely perform actions on your charging stations using our Station actions API. You can use this API to remotely diagnose issues and perform troubleshooting actions as needed.
+  description: Remotely perf orm actions on your charging stations using our Station actions API. You can use this API to remotely diagnose issues and perform troubleshooting actions as needed.
   version: 1.0.1
   title: Station actions API for electric vehicles
   license:
