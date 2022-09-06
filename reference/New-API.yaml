@@ -160,13 +160,13 @@ components:
           emailVerified: true
           signUpDate: '2019-08-24'
       properties:
-        id:
-          type: integer
-          description: Unique identifier for the given user.
         firstName:
           type: string
         lastName:
           type: string
+        id:
+          type: integer
+          description: Unique identifier for the given user.
         email:
           type: string
           format: email
