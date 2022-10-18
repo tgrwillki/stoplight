@@ -11,7 +11,7 @@ paths:
     parameters:
       - schema:
           type: integer
-        name: userId
+        name: userId1
         in: path
         required: true
         description: Id of an existing user.
